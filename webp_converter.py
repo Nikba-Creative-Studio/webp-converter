@@ -3,9 +3,10 @@ import os
 from pathlib import Path
 from PySide6.QtWidgets import (QApplication, QMainWindow, QPushButton, QVBoxLayout,
                             QWidget, QFileDialog, QProgressBar, QLabel, QSlider, QHBoxLayout)
-from PySide6.QtCore import Qt, QThread, Signal
-from PySide6.QtGui import QFont, QIcon, QPalette, QColor
+from PySide6.QtCore import Qt, QThread, Signal, QMimeData
+from PySide6.QtGui import QFont, QIcon, QPalette, QColor, QDragEnterEvent, QDropEvent
 from PIL import Image
+from app_icon import create_app_icon
 
 class ConversionWorker(QThread):
     progress = Signal(int)
@@ -29,16 +30,95 @@ class ConversionWorker(QThread):
                                          f"{os.path.splitext(image_file)[0]}.webp")
                 
                 with Image.open(input_path) as img:
-                    if img.mode in ('RGBA', 'LA'):
-                        img.save(output_path, 'WEBP', quality=self.quality, lossless=False)
+                    # Convert palette images to RGBA
+                    if img.mode == 'P':
+                        img = img.convert('RGBA')
+                    elif img.mode in ('RGBA', 'LA'):
+                        # Already in RGBA or LA mode, no conversion needed
+                        pass
                     else:
-                        img.convert('RGB').save(output_path, 'WEBP', quality=self.quality, lossless=False)
+                        # Convert other modes to RGB
+                        img = img.convert('RGB')
+                    
+                    # Save as WebP
+                    img.save(output_path, 'WEBP', quality=self.quality, lossless=False)
                 
                 self.progress.emit(int((i + 1) / total_files * 100))
             
             self.finished.emit()
         except Exception as e:
             self.error.emit(str(e))
+
+class DropZone(QLabel):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.main_window = parent  # Store reference to main window
+        self.setAlignment(Qt.AlignCenter)
+        self.setMinimumHeight(150)
+        self.setAcceptDrops(True)
+        self.setStyleSheet("""
+            QLabel {
+                border: 2px dashed #7263f2;
+                border-radius: 10px;
+                background-color: #0c1826;
+                color: #687683;
+            }
+            QLabel:hover {
+                border-color: #8a7df4;
+                background-color: #122b40;
+            }
+        """)
+        self.setText("Drop folder here\nor click to select")
+        self.setFont(QFont('Arial', 12))
+        self.setCursor(Qt.PointingHandCursor)
+
+    def dragEnterEvent(self, event: QDragEnterEvent):
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
+            self.setStyleSheet("""
+                QLabel {
+                    border: 2px dashed #1d966d;
+                    border-radius: 10px;
+                    background-color: #122b40;
+                    color: #687683;
+                }
+            """)
+
+    def dragLeaveEvent(self, event):
+        self.setStyleSheet("""
+            QLabel {
+                border: 2px dashed #7263f2;
+                border-radius: 10px;
+                background-color: #0c1826;
+                color: #687683;
+            }
+            QLabel:hover {
+                border-color: #8a7df4;
+                background-color: #122b40;
+            }
+        """)
+
+    def dropEvent(self, event: QDropEvent):
+        if event.mimeData().hasUrls():
+            url = event.mimeData().urls()[0]
+            path = url.toLocalFile()
+            if os.path.isdir(path):
+                if hasattr(self.main_window, 'handle_folder_selected'):
+                    self.main_window.handle_folder_selected(path)
+                else:
+                    print("Error: Main window doesn't have handle_folder_selected method")
+            self.setStyleSheet("""
+                QLabel {
+                    border: 2px dashed #7263f2;
+                    border-radius: 10px;
+                    background-color: #0c1826;
+                    color: #687683;
+                }
+                QLabel:hover {
+                    border-color: #8a7df4;
+                    background-color: #122b40;
+                }
+            """)
 
 class WebPConverter(QMainWindow):
     def __init__(self):
@@ -47,6 +127,7 @@ class WebPConverter(QMainWindow):
         self.setMinimumSize(500, 400)
         self.setup_ui()
         self.setup_dark_theme()
+        self.input_dir = None  # Initialize input_dir
 
     def setup_dark_theme(self):
         # Set the application style
@@ -142,6 +223,14 @@ class WebPConverter(QMainWindow):
         title.setAlignment(Qt.AlignCenter)
         layout.addWidget(title)
 
+        # Drop zone
+        self.drop_zone = DropZone(self)
+        self.drop_zone.mousePressEvent = self.show_folder_dialog
+        layout.addWidget(self.drop_zone)
+
+        # Add spacer for margin
+        layout.addSpacing(30)  # Add 30 pixels of vertical space
+
         # Quality selector
         quality_layout = QVBoxLayout()
         quality_label = QLabel("Quality:")
@@ -170,13 +259,6 @@ class WebPConverter(QMainWindow):
         quality_layout.addLayout(quality_control_layout)
         layout.addLayout(quality_layout)
 
-        # Select folder button
-        self.select_btn = QPushButton("Select Folder")
-        self.select_btn.setFont(QFont('Arial', 12))
-        self.select_btn.setMinimumHeight(50)
-        self.select_btn.clicked.connect(self.select_folder)
-        layout.addWidget(self.select_btn)
-
         # Progress bar
         self.progress_bar = QProgressBar()
         self.progress_bar.setFont(QFont('Arial', 12))
@@ -199,30 +281,57 @@ class WebPConverter(QMainWindow):
         self.convert_btn.setEnabled(False)
         layout.addWidget(self.convert_btn)
 
-    def select_folder(self):
-        folder = QFileDialog.getExistingDirectory(self, "Select Folder")
-        if folder:
+        # Add spacer to push footer to bottom
+        layout.addStretch()
+
+        # Footer
+        footer = QLabel("Powered by Nikba Creative Studio")
+        footer.setFont(QFont('Arial', 10))
+        footer.setAlignment(Qt.AlignCenter)
+        footer.setStyleSheet("color: #687683; margin-top: 20px;")
+        layout.addWidget(footer)
+
+    def show_folder_dialog(self, event):
+        try:
+            folder = QFileDialog.getExistingDirectory(self, "Select Folder")
+            if folder:
+                self.handle_folder_selected(folder)
+        except Exception as e:
+            print(f"Error selecting folder: {str(e)}")
+
+    def handle_folder_selected(self, folder):
+        try:
             self.input_dir = folder
             self.convert_btn.setEnabled(True)
             self.status_label.setText(f"Selected folder: {folder}")
             self.progress_bar.setValue(0)
             self.progress_bar.hide()
+            self.drop_zone.setText(f"Selected: {os.path.basename(folder)}\nDrop another folder or click to change")
+        except Exception as e:
+            print(f"Error handling folder selection: {str(e)}")
 
     def update_quality_label(self, value):
         self.quality_value_label.setText(str(value))
 
     def start_conversion(self):
-        self.convert_btn.setEnabled(False)
-        self.select_btn.setEnabled(False)
-        self.progress_bar.setValue(0)
-        self.progress_bar.show()
-        self.status_label.setText("Converting images...")
+        if not self.input_dir:
+            self.status_label.setText("Error: No folder selected")
+            return
 
-        self.worker = ConversionWorker(self.input_dir, self.quality_slider.value())
-        self.worker.progress.connect(self.update_progress)
-        self.worker.finished.connect(self.conversion_finished)
-        self.worker.error.connect(self.conversion_error)
-        self.worker.start()
+        try:
+            self.convert_btn.setEnabled(False)
+            self.progress_bar.setValue(0)
+            self.progress_bar.show()
+            self.status_label.setText("Converting images...")
+
+            self.worker = ConversionWorker(self.input_dir, self.quality_slider.value())
+            self.worker.progress.connect(self.update_progress)
+            self.worker.finished.connect(self.conversion_finished)
+            self.worker.error.connect(self.conversion_error)
+            self.worker.start()
+        except Exception as e:
+            self.status_label.setText(f"Error: {str(e)}")
+            self.convert_btn.setEnabled(True)
 
     def update_progress(self, value):
         self.progress_bar.setValue(value)
@@ -230,15 +339,20 @@ class WebPConverter(QMainWindow):
     def conversion_finished(self):
         self.status_label.setText("Conversion completed successfully!")
         self.convert_btn.setEnabled(True)
-        self.select_btn.setEnabled(True)
 
     def conversion_error(self, error_msg):
         self.status_label.setText(f"Error: {error_msg}")
         self.convert_btn.setEnabled(True)
-        self.select_btn.setEnabled(True)
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
+    
+    # Create and set the app icon
+    icon_path = create_app_icon()
+    app_icon = QIcon(icon_path)
+    app.setWindowIcon(app_icon)
+    
     window = WebPConverter()
+    window.setWindowIcon(app_icon)
     window.show()
     sys.exit(app.exec()) 
