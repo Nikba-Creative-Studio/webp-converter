@@ -1,51 +1,61 @@
 # WebP Converter
 
-A modern Python application for converting images to WebP format while maintaining high quality.
+A modern desktop application for converting images to WebP format with a sleek dark theme UI.
 
 ## Features
 
-- Convert multiple images to WebP format in one go
-- Adjustable quality settings (1-100)
-- Modern and user-friendly interface
+- Drag and drop folder selection
+- Quality control slider (1-100)
 - Progress tracking
-- Supports PNG, JPG, JPEG, TIFF, and BMP formats
-- Maintains transparency for PNG images
+- Support for multiple image formats (PNG, JPG, JPEG, TIFF, BMP)
+- Dark theme UI
+- Error handling and status updates
 
-## Requirements
+## Building the Application
 
-- Python 3.8 or higher
-- PySide6
-- Pillow
+### Prerequisites
 
-## Installation
+1. Python 3.8 or higher
+2. pip (Python package installer)
 
-1. Clone this repository
-2. Create a virtual environment (recommended):
-   ```bash
-   python -m venv .venv
-   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-   ```
-3. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
+### Installation
+
+1. Clone this repository:
+```bash
+git clone <repository-url>
+cd webp-converter
+```
+
+2. Install the required dependencies:
+```bash
+pip install -r requirements.txt
+```
+
+### Building the Distribution
+
+1. Run the build script:
+```bash
+python build.py
+```
+
+2. The distribution will be created in the `dist` folder:
+   - On macOS: `dist/WebP Converter.app`
+   - On Windows: `dist/WebP Converter/WebP Converter.exe`
+
+### Running the Application
+
+- **macOS**: Double-click the `WebP Converter.app` in the `dist` folder or move it to your Applications folder
+- **Windows**: Run `WebP Converter.exe` from the `dist/WebP Converter` folder
 
 ## Usage
 
-1. Run the application:
-   ```bash
-   python webp_converter.py
-   ```
-2. Click "Select Folder" to choose the directory containing your images
-3. Adjust the quality setting if needed (default is 85)
+1. Launch the application
+2. Either drag and drop a folder containing images or click to select a folder
+3. Adjust the quality using the slider (default is 85)
 4. Click "Convert to WebP" to start the conversion
-5. Wait for the process to complete
+5. Monitor the progress in the progress bar
+6. The converted WebP images will be saved in the same folder as the original images
 
-The converted WebP images will be saved in the same folder as the original images.
+## License
 
-## Notes
-
-- The application preserves transparency for PNG images
-- Higher quality settings result in larger file sizes
-- The default quality of 85 provides a good balance between quality and file size
-- The application uses PySide6 for better macOS compatibility 
+This project is licensed under the MIT License - see the LICENSE file for details. 

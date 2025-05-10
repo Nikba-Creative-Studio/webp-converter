@@ -1,5 +1,6 @@
 from PIL import Image, ImageDraw
 import os
+import subprocess
 
 def create_app_icon():
     # Create a 512x512 image with a transparent background
@@ -31,16 +32,38 @@ def create_app_icon():
     # Composite the text onto the main image
     icon = Image.alpha_composite(icon, text_img)
     
-    # Save in different sizes
-    sizes = [16, 32, 64, 128, 256, 512]
-    for s in sizes:
-        resized = icon.resize((s, s), Image.Resampling.LANCZOS)
-        resized.save(f'icon_{s}.png')
+    # Create iconset directory
+    iconset_dir = 'icon.iconset'
+    if not os.path.exists(iconset_dir):
+        os.makedirs(iconset_dir)
     
-    # Save as ICO file
-    icon.save('app_icon.ico', format='ICO', sizes=[(s, s) for s in sizes])
+    # Save in different sizes for macOS
+    sizes = {
+        16: '16x16',
+        32: '16x16@2x',
+        32: '32x32',
+        64: '32x32@2x',
+        128: '128x128',
+        256: '128x128@2x',
+        256: '256x256',
+        512: '256x256@2x',
+        512: '512x512',
+        1024: '512x512@2x'
+    }
     
-    return 'app_icon.ico'
+    for size, name in sizes.items():
+        resized = icon.resize((size, size), Image.Resampling.LANCZOS)
+        resized.save(f'{iconset_dir}/icon_{name}.png')
+    
+    # Convert to icns using iconutil
+    try:
+        subprocess.run(['iconutil', '-c', 'icns', iconset_dir], check=True)
+        # Clean up iconset directory
+        subprocess.run(['rm', '-rf', iconset_dir])
+        return 'icon.icns'
+    except subprocess.CalledProcessError:
+        print("Warning: Failed to create .icns file")
+        return None
 
 if __name__ == '__main__':
     create_app_icon() 

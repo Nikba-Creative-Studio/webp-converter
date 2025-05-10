@@ -6,7 +6,6 @@ from PySide6.QtWidgets import (QApplication, QMainWindow, QPushButton, QVBoxLayo
 from PySide6.QtCore import Qt, QThread, Signal, QMimeData
 from PySide6.QtGui import QFont, QIcon, QPalette, QColor, QDragEnterEvent, QDropEvent
 from PIL import Image
-from app_icon import create_app_icon
 
 class ConversionWorker(QThread):
     progress = Signal(int)
@@ -347,12 +346,23 @@ class WebPConverter(QMainWindow):
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     
-    # Create and set the app icon
-    icon_path = create_app_icon()
-    app_icon = QIcon(icon_path)
-    app.setWindowIcon(app_icon)
+    # Create and set the app icon with error handling
+    app_icon = None
+    try:
+        from app_icon import create_app_icon
+        icon_path = create_app_icon()
+        if icon_path and os.path.exists(icon_path):
+            app_icon = QIcon(icon_path)
+            app.setWindowIcon(app_icon)
+    except Exception as e:
+        print(f"Warning: Could not load app icon: {str(e)}")
     
-    window = WebPConverter()
-    window.setWindowIcon(app_icon)
-    window.show()
-    sys.exit(app.exec()) 
+    try:
+        window = WebPConverter()
+        if app_icon:
+            window.setWindowIcon(app_icon)
+        window.show()
+        sys.exit(app.exec())
+    except Exception as e:
+        print(f"Error starting application: {str(e)}")
+        sys.exit(1) 
