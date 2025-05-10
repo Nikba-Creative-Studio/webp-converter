@@ -1,6 +1,8 @@
 # WebP Converter
 
-A modern desktop application for converting images to WebP format with a sleek dark theme UI.
+A modern Python application for converting images to WebP format with a sleek dark-themed UI.
+
+![WebP Converter App](app.png)
 
 ## Features
 
