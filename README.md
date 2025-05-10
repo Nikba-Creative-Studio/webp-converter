@@ -13,6 +13,10 @@ A modern Python application for converting images to WebP format with a sleek da
 - Dark theme UI
 - Error handling and status updates
 
+## Download
+
+You can download the latest release from the [Releases](https://github.com/yourusername/webp-converter/releases) page.
+
 ## Building the Application
 
 ### Prerequisites
