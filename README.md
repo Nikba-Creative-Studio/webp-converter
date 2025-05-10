@@ -15,7 +15,7 @@ A modern Python application for converting images to WebP format with a sleek da
 
 ## Download
 
-You can download the latest release from the [Releases](https://github.com/yourusername/webp-converter/releases) page.
+You can download the latest release from the [Releases](https://github.com/Nikba-Creative-Studio/webp-converter/releases) page.
 
 ## Building the Application
 
