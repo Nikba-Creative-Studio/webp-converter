@@ -3,6 +3,8 @@ name: Build WebP Converter
 on:
   release:
     types: [created]
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -40,11 +42,11 @@ jobs:
           "dist/WebP Converter.app"
         
     - name: Upload DMG
-      uses: actions/upload-release-asset@v1.1
+      uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ github.event.release.upload_url }}
         asset_path: ./WebP Converter.dmg
         asset_name: WebP Converter.dmg
-        asset_content_type: application/octet-stream 
+        asset_content_type: application/octet-stream
